@@ -1,0 +1,22 @@
+[package]
+name = "live_audio_trans"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+chrono = "0.4"
+cpal = "0.15.2"
+num-traits = "0.2"
+whisper-rs = "0.12.0"
+ringbuffer = "0.15.0"
+samplerate = "0.2.4"
+reqwest = { version = "0.11", features = ["blocking"] }
+hound = "3.4.0"
+candle-core = { version = "0.8.2", features = ["default"] }
+candle-transformers = { version = "0.8.2", features = ["default"] }
+candle-nn = { version = "0.8.2", features = ["default"] }
+tokenizers = "0.21"
+anyhow = "1.0"
+crossbeam-channel = "0.5.14"
+ringbuf = "0.2"
