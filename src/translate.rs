@@ -78,16 +78,7 @@ impl Translator {
 
     /// 翻译：若文本是英文，则进行翻译；否则原样返回
     pub fn translate(&mut self, text: &str) -> anyhow::Result<String> {
-        println!("Translating text: {}", text);
 
-        // 1. 判断是否英文
-        if !is_english(text) {
-            println!("Text is not in English, returning original text.");
-            return Ok(text.to_string());
-        }
-
-        // 2. 先经过 encoder 编码
-        println!("Encoding text with English tokenizer...");
         let mut tokens = self
             .tokenizer
             .encode(text, /* add_special_tokens = */ true)
@@ -100,7 +91,7 @@ impl Translator {
         let tokens = Tensor::new(tokens.as_slice(), &self.device)?.unsqueeze(0)?;
         let encoder_xs = self.model.encoder().forward(&tokens, /* start_pos = */ 0)?;
 
-        // 3. decoder 端逐 token 解码
+        // decoder 端逐 token 解码
         let mut token_ids = vec![self.config.decoder_start_token_id];
         // 随机数种子、其他采样参数在这里指定
         let mut logits_processor = LogitsProcessor::new(/*seed=*/1337, /*top_k=*/None, /*top_p=*/None);
@@ -133,8 +124,7 @@ impl Translator {
             token_ids.push(next_token);
         }
 
-        // 4. 用 tokenizer_dec 解码生成后的序列（去掉开头的 decoder_start_token_id）
-        println!("Decoding generated tokens with Chinese tokenizer...");
+        // 用 tokenizer_dec 解码生成后的序列（去掉开头的 decoder_start_token_id）
         let translation = self
             .tokenizer_dec
             .decode(&token_ids[1..], /* skip_special_tokens = */ true)
@@ -143,18 +133,6 @@ impl Translator {
         // 5. 注意要清空 KV 缓存，避免下次翻译时冲突
         self.model.reset_kv_cache();
 
-        println!("Translation completed successfully.");
         Ok(translation)
     }
-}
-
-/// 判断文本是否主要由英文字母构成
-fn is_english(text: &str) -> bool {
-    let en_chars = text.chars().filter(|c| c.is_ascii_alphabetic()).count();
-    let total_chars = text.chars().filter(|c| !c.is_whitespace()).count();
-
-    if total_chars == 0 {
-        return false;
-    }
-    en_chars as f32 / total_chars as f32 > 0.5
 }
