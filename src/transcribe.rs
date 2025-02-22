@@ -1,4 +1,4 @@
-
+use log::{info, debug, error};
 use whisper_rs::{
     FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters, WhisperState,
 };
@@ -65,6 +65,7 @@ impl Whisper {
         params.set_print_timestamps(false);
         params.set_logprob_thold(-2.0);
         params.set_temperature(0.0);
+        params.set_n_threads(10);
         // 执行转录
         self.whisper_state
             .full(params, &samples)

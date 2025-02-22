@@ -4,7 +4,7 @@ use candle_nn::{Activation, VarBuilder};
 use candle_transformers::generation::LogitsProcessor;
 use candle_transformers::models::marian::{self, MTModel};
 use tokenizers::Tokenizer;
-
+use log::{info, debug, error};
 pub struct Translator {
     model: MTModel,
     config: marian::Config,
@@ -20,14 +20,14 @@ impl Translator {
     /// - `en_token` 为英文分词器文件，比如 "opus-mt-en-zh/tokenizer-en.json"。
     /// - `zh_token` 为中文分词器文件，比如 "opus-mt-en-zh/tokenizer-zh.json"。
     pub fn new(model_path: &str, en_token: &str, zh_token: &str) -> anyhow::Result<Self> {
-        println!("Initializing Translator with model_path: {}, en_token: {}, zh_token: {}", model_path, en_token, zh_token);
+        info!("Initializing Translator with model_path: {}, en_token: {}, zh_token: {}", model_path, en_token, zh_token);
 
         // 选择设备，这里使用 CPU，如需 GPU/MPS 可改为 `Device::new_metal(0)` 等
         let device = Device::Cpu;
 
         // 从 safetensors 文件创建 VarBuilder，注意这里使用了 unsafe，
         // 但其含义只是“零拷贝”映射，不会真正不安全。
-        println!("Creating VarBuilder from model_path...");
+        info!("Creating VarBuilder from model_path...");
         let vb = unsafe {
             VarBuilder::from_mmaped_safetensors(&[model_path], DType::F32, &device)?
         };
@@ -57,16 +57,16 @@ impl Translator {
         };
 
         // 分别加载英文分词器和中文分词器
-        println!("Loading English tokenizer from file: {}", en_token);
+        info!("Loading English tokenizer from file: {}", en_token);
         let tokenizer = Tokenizer::from_file(en_token).map_err(E::msg)?;
-        println!("Loading Chinese tokenizer from file: {}", zh_token);
+        info!("Loading Chinese tokenizer from file: {}", zh_token);
         let tokenizer_dec = Tokenizer::from_file(zh_token).map_err(E::msg)?;
 
         // 创建 Marian 模型
-        println!("Creating Marian model...");
+        info!("Creating Marian model...");
         let model = MTModel::new(&config, vb)?;
 
-        println!("Translator initialized successfully.");
+        info!("Translator initialized successfully.");
         Ok(Self {
             model,
             config,

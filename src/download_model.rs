@@ -3,10 +3,11 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
+use log::info;
 
 /// 下载文件，并保存到指定路径。如果下载失败则 panic。
 pub fn download_file(url: &str, output_path: &str) {
-    println!("Downloading from {} ...", url);
+    info!("Downloading from {} ...", url);
 
     // 使用 Client 构建器设置超时时间（例如 600 秒）
     let client = Client::builder()
@@ -30,5 +31,5 @@ pub fn download_file(url: &str, output_path: &str) {
     // 直接将响应体复制到文件中
     let content = response.bytes().expect("Failed to read response bytes");
     file.write_all(&content).expect("Failed to write to file");
-    println!("Download completed and saved to {}", output_path);
+    info!("Download completed and saved to {}", output_path);
 }
