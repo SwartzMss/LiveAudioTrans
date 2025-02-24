@@ -5,12 +5,17 @@ use candle_transformers::generation::LogitsProcessor;
 use candle_transformers::models::marian::{self, MTModel};
 use tokenizers::Tokenizer;
 use log::{info, debug, error};
+use std::env;
 pub struct Translator {
     model: MTModel,
     config: marian::Config,
     tokenizer: Tokenizer,      // 用于对英文文本进行编码
     tokenizer_dec: Tokenizer,  // 用于对生成的 token 进行解码（中文）
     device: Device,
+}
+
+fn cuda_is_available_via_env() -> bool {
+    env::var("CUDA_PATH").map(|path| !path.is_empty()).unwrap_or(false)
 }
 
 impl Translator {
@@ -22,8 +27,12 @@ impl Translator {
     pub fn new(model_path: &str, en_token: &str, zh_token: &str) -> anyhow::Result<Self> {
         info!("Initializing Translator with model_path: {}, en_token: {}, zh_token: {}", model_path, en_token, zh_token);
 
-        // 选择设备，这里使用 CPU，如需 GPU/MPS 可改为 `Device::new_metal(0)` 等
-        let device = Device::Cpu;
+        // 选择设备
+        let device = if cuda_is_available_via_env() {
+            Device::new_cuda(0)?
+        } else {
+            Device::Cpu
+        };
 
         // 从 safetensors 文件创建 VarBuilder，注意这里使用了 unsafe，
         // 但其含义只是“零拷贝”映射，不会真正不安全。

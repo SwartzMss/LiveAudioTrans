@@ -8,13 +8,13 @@ edition = "2021"
 chrono = "0.4"
 cpal = "^0.15.3"
 num-traits = "0.2"
-whisper-rs = { version = "0.12.0"}
+whisper-rs = { git="https://github.com/SwartzMss/whisper-rs.git",  features = ["cuda","openmp"] }
 samplerate = "0.2.4"
 reqwest = { version = "0.11", features = ["blocking"] }
 hound = "3.4.0"
-candle-core = { version = "0.8.2", features = ["default"] }
-candle-transformers = { version = "0.8.2", features = ["default"] }
-candle-nn = { version = "0.8.2", features = ["default"] }
+candle-core = { version = "0.8.3", features = ["cuda"] }
+candle-transformers = { version = "0.8.3", features = ["cuda"] }
+candle-nn = { version = "0.8.3", features = ["cuda"] }
 tokenizers = "0.21"
 anyhow = "1.0"
 crossbeam-channel = "0.5.14"
@@ -22,4 +22,7 @@ log = "0.4"
 env_logger = "0.10"
 fern = "0.6"
 ringbuffer = "0.15.0"
-threadpool = "1.8"
+
+
+[patch.crates-io]
+esaxx-rs = { git = "https://github.com/thewh1teagle/esaxx-rs.git", branch = "feat/dynamic-msvc-link" }

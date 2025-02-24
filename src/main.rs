@@ -2,14 +2,12 @@ use std::path::Path;
 use std::time::Duration;
 use std::thread;
 use std::io;
-use std::sync::{Arc, Mutex};
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
-use log::{info, error,Level, LevelFilter};
+use log::{info, error, Level, LevelFilter};
 use fern::Dispatch;
 use std::fs::File;
 use chrono::Local;
 use std::panic;
-use threadpool::ThreadPool;
 
 mod download_model;
 use download_model::download_file;
@@ -22,8 +20,6 @@ use transcribe::Whisper;
 
 mod translate;
 use translate::Translator;
-
-
 
 fn setup_logging(log_to_file: bool) {
     // 全局设置为 Debug，保证 debug 日志也能通过
@@ -74,6 +70,7 @@ fn main() {
         error!("Panic occurred: {:?}", panic_info);
     }));
     setup_logging(true);
+    
     // 确保 Whisper 模型存在
     let whisper_model_path = "models/ggml-base-q5_1.bin";
     let whisper_download_url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin";
@@ -85,20 +82,16 @@ fn main() {
     ensure_model_exists(translator_model_path, translator_download_url);
 
     info!("Loading Whisper model...");
-    let whisper = Arc::new(Mutex::new(Whisper::new(whisper_model_path)));
+    // 直接初始化 Whisper 实例（后续只在子线程中使用，不需要 Arc/Mutex）
+    let mut whisper = Whisper::new(whisper_model_path);
     info!("Whisper model loaded.");
-
-    let thread_id = std::thread::current().id();
-    info!("main thread: {:?}", thread_id);
 
     // 初始化翻译器
     let tokenizer_path_en = "models/tokenizer-marian-base-en.json";
     let tokenizer_path_zh = "models/tokenizer-marian-base-zh.json";
     let mut translator = Translator::new(translator_model_path, tokenizer_path_en, tokenizer_path_zh)
         .expect("Failed to load translator model");
-
-        let thread_id = std::thread::current().id();
-        info!("Audio callback in thread: {:?}", thread_id);
+    
     // 创建音频数据传输的 channel
     let (audio_sender, audio_receiver): (Sender<Vec<f32>>, Receiver<Vec<f32>>) = unbounded();
 
@@ -106,28 +99,15 @@ fn main() {
     let _audio_capture = AudioCapture::new_stream_with_sender(audio_sender);
 
     // 用于传递转录结果的 channel
-    let (result_sender, result_receiver): (Sender<String>, Receiver<String>) = bounded(10);
+    let (result_sender, result_receiver): (Sender<String>, Receiver<String>) = unbounded();
 
-    // 创建一个线程池，大小为 10
-    let pool = ThreadPool::new(1);
-
-    // 启动一个监听线程：从 audio_receiver 中读取音频块，然后丢到线程池中处理
+    // 启动一个线程：从 audio_receiver 中读取音频块，并同步进行转录处理
     let transcribe_result_sender = result_sender.clone();
-    let whisper_for_thread = Arc::clone(&whisper);
     thread::spawn(move || {
         while let Ok(chunk) = audio_receiver.recv() {
-            let whisper_handle = Arc::clone(&whisper_for_thread);
-            let result_handle = transcribe_result_sender.clone();
-
-            // 提交一个任务给线程池
-            pool.execute(move || {
-                let mut whisper_locked = whisper_handle.lock().unwrap();
-                info!(" start");
-                if let Some(text) = whisper_locked.transcribe_samples(chunk) {
-                    let _ = result_handle.send(text.trim().to_string());
-                }
-                info!(" end");
-            });
+            if let Some(text) = whisper.transcribe_samples(chunk) {
+                let _ = transcribe_result_sender.send(text.trim().to_string());
+            }
         }
     });
 
@@ -135,17 +115,20 @@ fn main() {
     info!("Starting real-time transcription loop...");
     loop {
         while let Ok(text) = result_receiver.try_recv() {
-            info!("result_receiver{}", text);
-            // match translator.translate(&text) {
-            //     Ok(translated) => {
-            //         if text.trim() == translated.trim() {
-            //             info!("[live translate] {}", text);
-            //         } else {
-            //             info!("[live translate] 英文: {}\n          中文: {}", text, translated);
-            //         }
-            //     }
-            //     Err(e) => eprintln!("Translation error: {:?}", e),
-            // }
+            let text = text.trim();
+            if text.is_empty() || text == "[BLANK_AUDIO]" || text == "[MUSIC]" {
+                continue;
+            }
+            match translator.translate(&text) {
+                Ok(translated) => {
+                    if text.trim() == translated.trim() {
+                        info!("[live translate] {}", text);
+                    } else {
+                        info!("[live translate] 英文: {}\n          中文: {}", text, translated);
+                    }
+                }
+                Err(e) => eprintln!("Translation error: {:?}", e),
+            }
         }
         thread::sleep(Duration::from_millis(50));
     }
