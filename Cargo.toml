@@ -3,18 +3,39 @@ name = "live_audio_trans"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["non-cuda"]
+cuda = [
+    # 显式启用依赖项并设置CUDA特性
+    "whisper-rs",
+    "whisper-rs/cuda",
+    "candle-core",
+    "candle-core/cuda",
+    "candle-transformers",
+    "candle-transformers/cuda",
+    "candle-nn",
+    "candle-nn/cuda"
+]
+non-cuda = [
+    # 显式启用依赖项并设置CPU加速特性
+    "whisper-rs",
+    "whisper-rs/openmp",
+    "candle-core",
+    "candle-transformers",
+    "candle-nn",
+]
 
 [dependencies]
 chrono = "0.4"
 cpal = "^0.15.3"
 num-traits = "0.2"
-whisper-rs = { git="https://github.com/SwartzMss/whisper-rs.git",  features = ["cuda","openmp"] }
+whisper-rs = { git = "https://github.com/SwartzMss/whisper-rs.git", optional = true, default-features = false }
 samplerate = "0.2.4"
 reqwest = { version = "0.11", features = ["blocking"] }
 hound = "3.4.0"
-candle-core = { version = "0.8.3", features = ["cuda"] }
-candle-transformers = { version = "0.8.3", features = ["cuda"] }
-candle-nn = { version = "0.8.3", features = ["cuda"] }
+candle-core = { version = "0.8.3", optional = true, default-features = false }
+candle-transformers = { version = "0.8.3", optional = true, default-features = false }
+candle-nn = { version = "0.8.3", optional = true, default-features = false }
 tokenizers = "0.21"
 anyhow = "1.0"
 crossbeam-channel = "0.5.14"
@@ -22,7 +43,6 @@ log = "0.4"
 env_logger = "0.10"
 fern = "0.6"
 ringbuffer = "0.15.0"
-
 
 [patch.crates-io]
 esaxx-rs = { git = "https://github.com/thewh1teagle/esaxx-rs.git", branch = "feat/dynamic-msvc-link" }

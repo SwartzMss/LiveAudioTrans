@@ -5,17 +5,12 @@ use candle_transformers::generation::LogitsProcessor;
 use candle_transformers::models::marian::{self, MTModel};
 use tokenizers::Tokenizer;
 use log::{info, debug, error};
-use std::env;
 pub struct Translator {
     model: MTModel,
     config: marian::Config,
     tokenizer: Tokenizer,      // 用于对英文文本进行编码
     tokenizer_dec: Tokenizer,  // 用于对生成的 token 进行解码（中文）
     device: Device,
-}
-
-fn cuda_is_available_via_env() -> bool {
-    env::var("CUDA_PATH").map(|path| !path.is_empty()).unwrap_or(false)
 }
 
 impl Translator {
@@ -28,7 +23,7 @@ impl Translator {
         info!("Initializing Translator with model_path: {}, en_token: {}, zh_token: {}", model_path, en_token, zh_token);
 
         // 选择设备
-        let device = if cuda_is_available_via_env() {
+        let device = if cfg!(feature = "cuda") {
             Device::new_cuda(0)?
         } else {
             Device::Cpu

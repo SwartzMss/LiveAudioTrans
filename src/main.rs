@@ -116,7 +116,7 @@ fn main() {
     loop {
         while let Ok(text) = result_receiver.try_recv() {
             let text = text.trim();
-            if text.is_empty() || text == "[BLANK_AUDIO]" || text == "[MUSIC]" {
+            if text.is_empty() || text == "[BLANK_AUDIO]" || text == "[Music]" {
                 continue;
             }
             match translator.translate(&text) {

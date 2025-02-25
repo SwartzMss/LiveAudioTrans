@@ -24,7 +24,7 @@ impl Whisper {
         let ctx = WhisperContext::new_with_params(
             whisper_model_path,
             WhisperContextParameters {
-                use_gpu: true,
+                use_gpu: cfg!(feature = "cuda"),
                 flash_attn: false,
                 ..Default::default()
             },
