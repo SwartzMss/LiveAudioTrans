@@ -21,6 +21,9 @@ use transcribe::Whisper;
 mod translate;
 use translate::Translator;
 
+mod display;
+use display::ScrollingDisplay;
+
 fn setup_logging(log_to_file: bool) {
     // 全局设置为 Debug，保证 debug 日志也能通过
     let base_dispatch = Dispatch::new()
@@ -111,6 +114,9 @@ fn main() {
         }
     });
 
+    // 初始化显示模块
+    let mut display = ScrollingDisplay::new();
+    
     // 主线程：处理转录结果，并进行翻译
     info!("Starting real-time transcription loop...");
     loop {
@@ -121,10 +127,8 @@ fn main() {
             }
             match translator.translate(&text) {
                 Ok(translated) => {
-                    if text.trim() == translated.trim() {
-                        info!("[live translate] {}", text);
-                    } else {
-                        info!("[live translate] 英文: {}\n          中文: {}", text, translated);
+                    if text.trim() != translated.trim() {
+                        display.add_text(text, &translated);
                     }
                 }
                 Err(e) => eprintln!("Translation error: {:?}", e),
