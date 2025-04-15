@@ -42,3 +42,6 @@ cargo build --release --features cuda
    - 不存在时会从 Hugging Face 下载一份示例模型文件并存储到 `models` 文件夹下。  
    - 若想替换成其他支持英->中翻译的 Marian 模型，可在代码中调整相关配置。
 
+**注意事项**
+   - CPU加速模式：本项目使用 OpenMP 进行并行计算，运行时需要 vcomp140.dll 文件。若缺少该文件，请确保已安装支持的 Visual C++ Redistributable 包。
+
